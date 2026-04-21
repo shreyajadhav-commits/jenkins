@@ -7,9 +7,10 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-                git 'https://github.com/shreyajadhav-commits/jenkins.git'
-            }
+    steps {
+        git branch: 'main', url: 'https://github.com/shreyajadhav-commits/jenkins.git'
+    }
+}
         }
 
         stage('Build & Test') {
