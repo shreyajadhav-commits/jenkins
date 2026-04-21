@@ -4,7 +4,7 @@ pipeline {
     
     tools {
         maven 'maven3'
-        docker 'docker-tool' // This matches the Name you gave in Step 1
+        dockerTool 'docker-tool' // This matches the Name you gave in Step 1
     }
 
     environment {
