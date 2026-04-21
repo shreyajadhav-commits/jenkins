@@ -1,5 +1,10 @@
 pipeline {
     agent any
+    
+    
+    tools {
+        maven 'maven3' // This matches the Name you gave in Step 1
+    }
 
     environment {
         DOCKER_HUB_USER = 'shreyajadhav911' // Your Docker Hub username
@@ -43,7 +48,8 @@ pipeline {
 
     post {
         always {
-            sh 'docker logout'
+            // sh 'docker logout'  <-- Comment this out temporarily
+            echo 'Build complete'
         }
     } // Closes post block
 } // Closes the entire pipeline
