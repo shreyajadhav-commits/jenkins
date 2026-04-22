@@ -1,4 +1,4 @@
-package com.example.jenkins;
+package com.example.jenkins; // Ensure this matches your main app package
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +13,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Disable CSRF so POST/PUT work without tokens
+            .csrf(csrf -> csrf.disable()) // Required to allow POST/PUT requests
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // THIS disables the password requirement
+                .anyRequest().permitAll() // This is what actually "disables" the login requirement
             )
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())); 
-        
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())); // Fixes H2 Console
+            
         return http.build();
     }
 }
