@@ -2,17 +2,18 @@
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 
-# Copy only Maven wrapper and POM first to cache dependencies
+# Install bash and dos2unix to handle Windows-to-Linux line ending issues with mvnw
+RUN apk add --no-cache bash dos2unix
+
 COPY pom.xml mvnw ./
 COPY .mvn .mvn
 
-# Make sure mvnw is executable (important for Alpine)
-RUN chmod +x mvnw
+# Fix potential Windows line ending issues and make executable
+RUN dos2unix mvnw && chmod +x mvnw
 
-# Download dependencies without building
+# Download dependencies (Layer caching)
 RUN ./mvnw dependency:go-offline
 
-# Copy only source code now
 COPY src ./src
 
 # Build the application
@@ -22,10 +23,11 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copy the JAR from the build stage
-COPY --from=build /app/target/jenkins-0.0.1-SNAPSHOT.jar app.jar
-# Expose port 9090
+# Use a wildcard to find the JAR regardless of the version name
+COPY --from=build /app/target/*.jar app.jar
+
+# Ensure the app runs on 9090 inside the container
+ENV SERVER_PORT=9090
 EXPOSE 9090
 
-# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

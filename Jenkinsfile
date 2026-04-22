@@ -9,30 +9,27 @@ pipeline {
     environment {
         IMAGE_NAME = "shreyajadhav911/jenkins"
         IMAGE_TAG = "${BUILD_NUMBER}"
+        // Matches your Dockerfile's EXPOSE 9090
+        APP_PORT = "9090" 
     }
 
     stages {
-
-        stage('Verify Java') {
+        stage('Verify Environment') {
             steps {
                 sh '''
                     java -version
                     mvn -v
+                    docker version
                 '''
             }
         }
 
         stage('Build Maven') {
             steps {
+                // Building the JAR to be copied into the Docker image
                 sh 'mvn clean package -DskipTests'
             }
         }
-        
-        stage('Test Docker') {
-    steps {
-        sh 'docker version'
-    }
-}
 
         stage('Build Docker Image') {
             steps {
@@ -50,9 +47,7 @@ pipeline {
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    sh '''
-                        echo "$PASS" | docker login -u "$USER" --password-stdin
-                    '''
+                    sh 'echo "$PASS" | docker login -u "$USER" --password-stdin'
                 }
             }
         }
@@ -69,9 +64,12 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 sh """
+                    # Stop and remove if container already exists
                     docker stop springboot-app || true
                     docker rm springboot-app || true
-                    docker run -d -p 9090:8080 --name springboot-app ${IMAGE_NAME}:latest
+                    
+                    # Map 9090 on Host to 9090 in Container (based on your Dockerfile)
+                    docker run -d -p ${APP_PORT}:${APP_PORT} --name springboot-app ${IMAGE_NAME}:latest
                 """
             }
         }
@@ -79,7 +77,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline succeeded!'
+            echo "✅ Pipeline succeeded! App available at http://localhost:${APP_PORT}"
         }
         failure {
             echo '❌ Pipeline failed — check logs!'
