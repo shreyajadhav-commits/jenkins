@@ -27,6 +27,12 @@ pipeline {
                 sh 'mvn clean package -DskipTests'
             }
         }
+        
+        stage('Test Docker') {
+    steps {
+        sh 'docker version'
+    }
+}
 
         stage('Build Docker Image') {
             steps {
