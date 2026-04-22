@@ -7,8 +7,8 @@ pipeline {
     }
 
     environment {
-        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17"
-        PATH = "C:\\Program Files\\Java\\jdk-17\\bin;${env.PATH}"
+        JAVA_HOME = "C:\Program Files\Java\jdk-17"
+        PATH = "C:\Program Files\Java\jdk-17\bin;${env.PATH}"
         IMAGE_NAME = "shreyajadhav911/jenkins"
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
