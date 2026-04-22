@@ -16,7 +16,7 @@ pipeline {
 
         stage('Verify Java') {
             steps {
-                bat '''
+                sh '''
                 java -version
                 mvn -v
                 '''
@@ -25,13 +25,13 @@ pipeline {
 
         stage('Build Maven') {
             steps {
-                bat 'mvn clean package -DskipTests'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat """
+                sh """
                 docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
                 docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest
                 """
@@ -41,12 +41,12 @@ pipeline {
        stage('Login Docker Hub') {
     steps {
         withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-creds',
+            credentialsId: 'docker-credentials',
             usernameVariable: 'USER',
             passwordVariable: 'PASS'
         )]) {
             
-            bat "echo %PASS%| docker login -u %USER% --password-stdin"
+            sh "echo %PASS%| docker login -u %USER% --password-stdin"
         }
     }
 }
@@ -54,7 +54,7 @@ pipeline {
 
         stage('Push Image') {
             steps {
-                bat """
+                sh """
                 docker push %IMAGE_NAME%:%IMAGE_TAG%
                 docker push %IMAGE_NAME%:latest
                 """
@@ -63,7 +63,7 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                bat """
+                sh """
                 docker stop springboot-app || exit 0
                 docker rm springboot-app || exit 0
                 docker run -d -p 9090:8080 --name springboot-app %IMAGE_NAME%:latest
