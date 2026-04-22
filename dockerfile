@@ -24,7 +24,7 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Use a wildcard to find the JAR regardless of the version name
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/jenkins-*.jar app.jar
 
 # Ensure the app runs on 9090 inside the container
 ENV SERVER_PORT=9090
