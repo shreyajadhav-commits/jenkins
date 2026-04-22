@@ -5,12 +5,25 @@ pipeline {
         IMAGE_NAME = "shreyajadhav911/jenkins"
         IMAGE_TAG = "${BUILD_NUMBER}"
         APP_PORT = "9090" 
+        REPO_URL = "https://github.com/shreyajadhav-commits/jenkins.git"
     }
 
     stages {
+        stage('Checkout Source') {
+            steps {
+                // This cleans the directory and clones the fresh repo
+                checkout([$class: 'GitSCM', 
+                    branches: [[name: '*/main']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '']], 
+                    userRemoteConfigs: [[url: "${REPO_URL}"]]
+                ])
+            }
+        }
+
         stage('Fix Git Permissions') {
             steps {
-                // This prevents the 'fatal: not in a git directory' error on Docker/Windows
+                // Resolves the 'fatal: not in a git directory' on Windows/Docker volumes
                 sh 'git config --global --add safe.directory "*"'
             }
         }
@@ -27,7 +40,6 @@ pipeline {
 
         stage('Build Maven') {
             steps {
-                // Using chmod to ensure the wrapper can run inside the Linux container
                 sh 'chmod +x mvnw'
                 sh './mvnw clean package -DskipTests'
             }
@@ -44,7 +56,6 @@ pipeline {
 
         stage('Login Docker Hub') {
             steps {
-                // Ensure the 'docker-credentials' ID exists in Jenkins -> Credentials
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-credentials',
                     usernameVariable: 'USER',
@@ -77,8 +88,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline succeeded! Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "🚀 App available at http://localhost:${APP_PORT}"
+            echo "✅ Pipeline succeeded! App: http://localhost:${APP_PORT}"
         }
         failure {
             echo '❌ Pipeline failed — check logs!'
