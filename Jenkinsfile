@@ -1,56 +1,83 @@
 pipeline {
     agent any
-    
-    
+
     tools {
-        maven 'maven3'
-        dockerTool 'docker-tool' // This matches the Name you gave in Step 1
+        maven 'Maven3'
     }
 
     environment {
-        DOCKER_HUB_USER = 'shreyajadhav911' // Your Docker Hub username
-        REPO_NAME = 'jenkins'
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17"
+        PATH = "C:\\Program Files\\Java\\jdk-17\\bin;${env.PATH}"
+        IMAGE_NAME = "shreyajadhav911/jenkins"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                // Since this is 'Pipeline from SCM', this step is often redundant 
-                // but kept here for your specific requirement.
-                git branch: 'main', url: 'https://github.com/shreyajadhav-commits/jenkins.git'
-            }
-        } // Closes Checkout stage
 
-        stage('Build & Test') {
+        stage('Verify Java') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                bat '''
+                java -version
+                mvn -v
+                '''
             }
-        } // Closes Build stage
+        }
 
-        stage('Docker Build') {
+        stage('Build Maven') {
             steps {
-                sh "docker build -t ${DOCKER_HUB_USER}/${REPO_NAME}:${env.BUILD_ID} ."
-                sh "docker build -t ${DOCKER_HUB_USER}/${REPO_NAME}:latest ."
+                bat 'mvn clean package -DskipTests'
             }
-        } // Closes Docker Build stage
+        }
 
-        stage('Docker Push') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh "echo \$PASS | docker login -u \$USER --password-stdin"
-                        sh "docker push ${DOCKER_HUB_USER}/${REPO_NAME}:${env.BUILD_ID}"
-                        sh "docker push ${DOCKER_HUB_USER}/${REPO_NAME}:latest"
-                    }
-                }
+                bat """
+                docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+                docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest
+                """
             }
-        } // Closes Docker Push stage
-    } // Closes ALL stages
+        }
+
+       stage('Login Docker Hub') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'USER',
+            passwordVariable: 'PASS'
+        )]) {
+            
+            bat "echo %PASS%| docker login -u %USER% --password-stdin"
+        }
+    }
+}
+
+
+        stage('Push Image') {
+            steps {
+                bat """
+                docker push %IMAGE_NAME%:%IMAGE_TAG%
+                docker push %IMAGE_NAME%:latest
+                """
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                bat """
+                docker stop springboot-app || exit 0
+                docker rm springboot-app || exit 0
+                docker run -d -p 9090:8080 --name springboot-app %IMAGE_NAME%:latest
+                """
+            }
+        }
+    }
 
     post {
-        always {
-            // sh 'docker logout'  <-- Comment this out temporarily
-            echo 'Build complete'
+        success {
+            echo '✅ Pipeline succeeded!'
         }
-    } // Closes post block
-} // Closes the entire pipeline
+        failure {
+            echo '❌ Pipeline failed — check logs!'
+        }
+    }
+}
